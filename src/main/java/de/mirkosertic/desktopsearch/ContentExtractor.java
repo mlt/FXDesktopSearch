@@ -91,7 +91,8 @@ class ContentExtractor {
             } catch (Exception e) {
                 LOGGER.info("Language "+theLanguageIdentifier.getLanguage()+" was detected, but is not supported");
             }
-            Content theContent = new Content(aFile.toString(), theStringData, aBasicFileAttributes.size(), theFileTime.toMillis(), theLanguage);
+            Content theContent = new Content(aFile.toString(), theStringData, aBasicFileAttributes.size(), theFileTime.toMillis(), theLanguage,
+                    theMetaData.get(Metadata.CONTENT_TYPE).compareTo("application/octet-stream") != 0);
             for (String theName : theMetaData.names()) {
 
                 String theMetaDataValue = theMetaData.get(theName);

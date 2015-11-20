@@ -70,7 +70,7 @@ class Backend implements ConfigurationChangeListener {
 
             private void fileCreatedOrModified(Configuration.CrawlLocation aLocation, Path aFile, boolean aShowInformation) {
                 String theFileName = aFile.toString();
-                if (contentExtractor.supportsFile(theFileName)) {
+//                if (contentExtractor.supportsFile(theFileName)) {
                     try {
                         progressListener.newFileFound(theFileName);
 
@@ -83,14 +83,14 @@ class Backend implements ConfigurationChangeListener {
                             }
 
                             Content theContent = contentExtractor.extractContentFrom(aFile, theAttributes);
-                            if (theContent != null) {
+                            if (theContent != null && theContent.isKnown()) {
                                 luceneIndexHandler.addToIndex(aLocation.getId(), theContent);
                             }
                         }
                     } catch (Exception e) {
                         aNotifier.showError("Error re-inxeding " + aFile.getFileName(), e);
                     }
-                }
+//                }
             }
         };
         configurationUpdated(aConfiguration);

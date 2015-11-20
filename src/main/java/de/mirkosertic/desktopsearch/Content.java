@@ -34,14 +34,16 @@ public class Content {
     private final List<KeyValuePair> metadata;
     private final String fileContent;
     private final SupportedLanguage language;
+    private final boolean known;
 
-    public Content(String aFileName, String aFileContent, long aFileSize, long aLastModified, SupportedLanguage aLanguage) {
+    public Content(String aFileName, String aFileContent, long aFileSize, long aLastModified, SupportedLanguage aLanguage, boolean aKnown) {
         fileName = aFileName;
         fileSize = aFileSize;
         lastModified = aLastModified;
         metadata = new ArrayList<>();
         fileContent = aFileContent;
         language = aLanguage;
+        known = aKnown;
     }
 
     public String getFileName() {
@@ -62,6 +64,10 @@ public class Content {
 
     public SupportedLanguage getLanguage() {
         return language;
+    }
+
+    public boolean isKnown() {
+        return known;
     }
 
     public Stream<KeyValuePair> getMetadata() {
