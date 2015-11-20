@@ -300,9 +300,12 @@ class LuceneIndexHandler {
             List<FacetDimension> theDimensions = new ArrayList<>();
 
             // Search only if a search query is given
-            if (!StringUtils.isEmpty(aQueryString)) {
-
-                Query theQuery = computeBooleanQueryFor(aQueryString);
+            Query theQuery;
+            if (StringUtils.isEmpty(aQueryString)) {
+                theQuery = new MatchAllDocsQuery();
+            } else {
+                theQuery = computeBooleanQueryFor(aQueryString);
+            }
 
                 LOGGER.info(" query is " + theQuery);
 
@@ -468,7 +471,6 @@ class LuceneIndexHandler {
 
                 // Wait for all Tasks to complete for the search result highlighter
                 ForkJoinTask.helpQuiesce();
-            }
 
             long theDuration = System.currentTimeMillis() - theStartTime;
 

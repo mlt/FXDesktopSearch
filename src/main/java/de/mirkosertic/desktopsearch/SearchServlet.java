@@ -102,16 +102,15 @@ public class SearchServlet extends HttpServlet {
             theBackLink = null;
         }
 
-        if (!StringUtils.isEmpty(theQueryString)) {
+        if (null == theQueryString) {
+            theQueryString = "";
+        }
             aRequest.setAttribute("querystring", theQueryString);
             try {
                 aRequest.setAttribute("queryResult", backend.performQuery(theQueryString, theBackLink, theBasePath, theDrilldownDimensions));
             } catch (Exception e) {
                 LOGGER.error("Error running query " + theQueryString, e);
             }
-        } else {
-            aRequest.setAttribute("querystring", "");
-        }
 
         aRequest.setAttribute("serverBase", serverBase);
 
