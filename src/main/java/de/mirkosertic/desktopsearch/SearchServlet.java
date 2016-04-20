@@ -70,14 +70,18 @@ public class SearchServlet extends HttpServlet {
         Map<String, String> theDrilldownDimensions = new HashMap<>();
 
         String thePathInfo = aRequest.getPathInfo();
+        if (null == thePathInfo && StringUtils.isBlank(theQueryString)) {
+            thePathInfo = "/";
+        }
         if (!StringUtils.isEmpty(thePathInfo)) {
             String theWorkingPathInfo = thePathInfo;
 
             // First component is the query string
+            // that might be empty! For example //author=me
             if (theWorkingPathInfo.startsWith("/")) {
                 theWorkingPathInfo = theWorkingPathInfo.substring(1);
             }
-            String[] thePaths = StringUtils.split(theWorkingPathInfo,"/");
+            String[] thePaths = theWorkingPathInfo.split("/");
             for (int i=0;i<thePaths.length;i++) {
                 try {
                     String theDecodedValue = thePaths[i].replace('+',' ');
@@ -102,9 +106,6 @@ public class SearchServlet extends HttpServlet {
             theBackLink = null;
         }
 
-        if (null == theQueryString) {
-            theQueryString = "";
-        }
             aRequest.setAttribute("querystring", theQueryString);
             try {
                 aRequest.setAttribute("queryResult", backend.performQuery(theQueryString, theBackLink, theBasePath, theDrilldownDimensions));
