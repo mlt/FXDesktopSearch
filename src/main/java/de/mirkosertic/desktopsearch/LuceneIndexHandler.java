@@ -327,6 +327,7 @@ class LuceneIndexHandler {
                 List<Facet> theAuthorFacets = new ArrayList<>();
                 List<Facet> theFileTypesFacets = new ArrayList<>();
                 List<Facet> theLastModifiedYearFacet = new ArrayList<>();
+                List<Facet> theKeywordsFacet = new ArrayList<>();
                 List<Facet> theLanguageFacet = new ArrayList<>();
 
                 LOGGER.info("Found "+theDocs.scoreDocs.length+" documents");
@@ -442,6 +443,15 @@ class LuceneIndexHandler {
                             }
                         }
                     }
+                    if ("keywords".equals(theDimension)) {
+                        for (LabelAndValue theLabelAndValue : theResult.labelValues) {
+                            if (!StringUtils.isEmpty(theLabelAndValue.label)) {
+                                theKeywordsFacet.add(new Facet(theLabelAndValue.label, theLabelAndValue.value.intValue(),
+                                        aBasePath + "/" + encode(
+                                                FacetSearchUtils.encode(theDimension, theLabelAndValue.label))));
+                            }
+                        }
+                    }
                     if (IndexFields.LANGUAGEFACET.equals(theDimension)) {
                         for (LabelAndValue theLabelAndValue : theResult.labelValues) {
                             if (!StringUtils.isEmpty(theLabelAndValue.label)) {
@@ -458,6 +468,9 @@ class LuceneIndexHandler {
 
                 if (!theAuthorFacets.isEmpty()) {
                     theDimensions.add(new FacetDimension("Author", theAuthorFacets));
+                }
+                if (!theKeywordsFacet.isEmpty()) {
+                    theDimensions.add(new FacetDimension("Keywords", theKeywordsFacet));
                 }
                 if (!theLastModifiedYearFacet.isEmpty()) {
                     theDimensions.add(new FacetDimension("Last modified", theLastModifiedYearFacet));
