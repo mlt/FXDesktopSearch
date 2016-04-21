@@ -328,7 +328,6 @@ class LuceneIndexHandler {
                 List<Facet> theFileTypesFacets = new ArrayList<>();
                 List<Facet> theLastModifiedYearFacet = new ArrayList<>();
                 List<Facet> theKeywordsFacet = new ArrayList<>();
-                List<Facet> theLanguageFacet = new ArrayList<>();
 
                 LOGGER.info("Found "+theDocs.scoreDocs.length+" documents");
 
@@ -452,16 +451,6 @@ class LuceneIndexHandler {
                             }
                         }
                     }
-                    if (IndexFields.LANGUAGEFACET.equals(theDimension)) {
-                        for (LabelAndValue theLabelAndValue : theResult.labelValues) {
-                            if (!StringUtils.isEmpty(theLabelAndValue.label)) {
-                                Locale theLocale = new Locale(theLabelAndValue.label);
-                                theLanguageFacet.add(new Facet(theLocale.getDisplayLanguage(Locale.ENGLISH),
-                                        theLabelAndValue.value.intValue(), aBasePath + "/" + encode(
-                                        FacetSearchUtils.encode(theDimension, theLabelAndValue.label))));
-                            }
-                        }
-                    }
 
                     LOGGER.info(" "+theDimension);
                 }
@@ -477,9 +466,6 @@ class LuceneIndexHandler {
                 }
                 if (!theFileTypesFacets.isEmpty()) {
                     theDimensions.add(new FacetDimension("File types", theFileTypesFacets));
-                }
-                if (!theLanguageFacet.isEmpty()) {
-                    theDimensions.add(new FacetDimension("Language", theLanguageFacet));
                 }
 
                 // Wait for all Tasks to complete for the search result highlighter
