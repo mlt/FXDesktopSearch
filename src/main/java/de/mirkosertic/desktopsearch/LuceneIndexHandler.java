@@ -384,7 +384,8 @@ class LuceneIndexHandler {
                             theExistingDocument = new QueryResultDocument(theDocumentID, theFoundFileName, theHighligherResult,
                                     Long.parseLong(theDocument.getField(IndexFields.LASTMODIFIED).stringValue()),
                                     theNormalizedScore, theUniqueID, thePreviewAvailable);
-                            theDocumentsByHash.put(theHash, theExistingDocument);
+                            if (0 != theHash.compareTo("d41d8cd98f00b204e9800998ecf8427e")) // don't lump empty content like images
+                                theDocumentsByHash.put(theHash, theExistingDocument);
                             theResultDocuments.add(theExistingDocument);
                         }
                     }
