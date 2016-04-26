@@ -33,12 +33,11 @@ import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.NRTCachingDirectory;
-import org.apache.tika.utils.DateUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.ForkJoinTask;
 
@@ -141,19 +140,23 @@ class LuceneIndexHandler {
                         theDocument.add(new SortedSetDocValuesFacetField(theEntry.key, theStringValue));
                     }
                 }
-                if (theValue instanceof Date) {
+                if (theValue instanceof Long) {
+                    facetsConfig.setMultiValued(theEntry.key, false);
+                    long theLongValue = (long) theValue;
+                    theContentAsString.append(" ").append(theLongValue).append("mm");
+                    theDocument.add(new NumericDocValuesField(theEntry.key, theLongValue));
+                }
+                if (theValue instanceof ZonedDateTime) {
                     facetsConfig.setHierarchical(theEntry.key, true);
-                    Date theDateValue = (Date) theValue;
-                    Calendar theCalendar = GregorianCalendar.getInstance(DateUtils.UTC, Locale.US);
-                    theCalendar.setTime(theDateValue);
+                    ZonedDateTime theDateValue = (ZonedDateTime) theValue;
 
                     // Full-Path
                     {
                         String thePathInfo = String.format(
                                 "%04d/%02d/%02d",
-                                theCalendar.get(Calendar.YEAR),
-                                theCalendar.get(Calendar.MONTH) + 1,
-                                theCalendar.get(Calendar.DAY_OF_MONTH));
+                                theDateValue.getYear(),
+                                theDateValue.getMonthValue(),
+                                theDateValue.getDayOfMonth());
 
                         theContentAsString.append(" ").append(thePathInfo);
 
@@ -164,7 +167,7 @@ class LuceneIndexHandler {
                     {
                         String thePathInfo = String.format(
                                 "%04d",
-                                theCalendar.get(Calendar.YEAR));
+                                theDateValue.getYear());
 
                         theContentAsString.append(" ").append(thePathInfo);
 
@@ -175,8 +178,8 @@ class LuceneIndexHandler {
                     {
                         String thePathInfo = String.format(
                                 "%04d/%02d",
-                                theCalendar.get(Calendar.YEAR),
-                                theCalendar.get(Calendar.MONTH) + 1);
+                                theDateValue.getYear(),
+                                theDateValue.getMonthValue());
 
                         theContentAsString.append(" ").append(thePathInfo);
 

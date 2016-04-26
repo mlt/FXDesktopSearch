@@ -16,8 +16,6 @@ import org.apache.log4j.Logger;
 import org.apache.tika.Tika;
 import org.apache.tika.language.LanguageIdentifier;
 import org.apache.tika.metadata.Metadata;
-import org.apache.tika.utils.DateUtils;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -26,26 +24,25 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.text.NumberFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 class ContentExtractor {
 
     private static final Logger LOGGER = Logger.getLogger(ContentExtractor.class);
 
     private final Tika tika;
-    private final Pattern metaDataDatePattern;
+    private final DateTimeFormatter[] formats = {
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+            DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss zzz yyyy"),
+            DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss") // Date/Time in jpegs
+            // DateTimeFormatter.ofPattern("yyyy-MM-ddTHH:mm:ss") // date in jpegs, same as ISO_LOCAL_DATE_TIME ?
+            };
     private final Configuration configuration;
 
     public ContentExtractor(Configuration aConfiguration) {
-
-        // TODO: auch korrekt dieses Muster verarbeitrn :  Mon Feb 18 15:55:10 CET 2013
-
-        metaDataDatePattern = Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})Z");
-
         configuration = aConfiguration;
         tika = new Tika();
     }
@@ -62,6 +59,18 @@ class ContentExtractor {
         }
 
         return aName;
+    }
+
+    private ZonedDateTime parseDate(String aString) {
+        for (DateTimeFormatter f : formats) {
+            try {
+                ZonedDateTime date = ZonedDateTime.parse(aString, f);
+                // System.out.printf("%s parsed\n", aString);
+                return date;
+            } catch (DateTimeParseException exc) {
+            }
+        }
+        return null;
     }
 
     public Content extractContentFrom(Path aFile, BasicFileAttributes aBasicFileAttributes) {
@@ -97,29 +106,21 @@ class ContentExtractor {
 
                 String theMetaDataValue = theMetaData.get(theName);
 
-                // Try to detect if this is a date
-                Matcher theMatcher = metaDataDatePattern.matcher(theMetaDataValue);
-                if (theMatcher.find()) {
-                    int theYear = Integer.parseInt(theMatcher.group(1));
-                    int theMonth = Integer.parseInt(theMatcher.group(2));
-                    int theDay = Integer.parseInt(theMatcher.group(3));
-                    int theHour = Integer.parseInt(theMatcher.group(4));
-                    int theMinute = Integer.parseInt(theMatcher.group(5));
-                    int theSecond = Integer.parseInt(theMatcher.group(6));
-
-                    Calendar theCalendar = GregorianCalendar.getInstance(DateUtils.UTC, Locale.US);
-                    theCalendar.set(Calendar.YEAR, theYear);
-                    theCalendar.set(Calendar.MONTH, theMonth - 1);
-                    theCalendar.set(Calendar.DAY_OF_MONTH, theDay);
-                    theCalendar.set(Calendar.HOUR_OF_DAY, theHour);
-                    theCalendar.set(Calendar.MINUTE, theMinute);
-                    theCalendar.set(Calendar.SECOND, theSecond);
-                    theCalendar.set(Calendar.MILLISECOND, 0);
-
-                    theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), theCalendar.getTime());
-                } else {
-                    theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), theMetaData.get(theName));
+                if (theName.equals("Focal Length 35")) {
+                    Long len = NumberFormat.getIntegerInstance().parse(theMetaDataValue).longValue();
+                    theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), len);
+                    continue;
                 }
+
+                // Try to detect if this is a date
+                ZonedDateTime date = parseDate(theMetaDataValue);
+                if (null != date) {
+                    theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), date);
+                    continue;
+                }
+
+                theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), theMetaDataValue);
+//                        System.out.printf("%s is not parsable!\n", theMetaDataValue);
             }
 
             String theFileName = aFile.getFileName().toString();
