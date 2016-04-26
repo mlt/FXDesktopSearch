@@ -70,7 +70,8 @@ class Backend implements ConfigurationChangeListener {
 
             private void fileCreatedOrModified(Configuration.CrawlLocation aLocation, Path aFile, boolean aShowInformation) {
                 String theFileName = aFile.toString();
-//                if (contentExtractor.supportsFile(theFileName)) {
+                String nameOnly = aFile.getFileName().toString();
+                if (!nameOnly.matches("^[.~].*|.*~$")) {
                     try {
                         progressListener.newFileFound(theFileName);
 
@@ -90,7 +91,7 @@ class Backend implements ConfigurationChangeListener {
                     } catch (Exception e) {
                         aNotifier.showError("Error re-inxeding " + aFile.getFileName(), e);
                     }
-//                }
+                }
             }
         };
         configurationUpdated(aConfiguration);
