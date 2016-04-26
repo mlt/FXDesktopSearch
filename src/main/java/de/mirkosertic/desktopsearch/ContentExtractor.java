@@ -122,7 +122,7 @@ class ContentExtractor {
                 }
             }
 
-            String theFileName = aFile.toString();
+            String theFileName = aFile.getFileName().toString();
             int p = theFileName.lastIndexOf(".");
             if (p > 0) {
                 String theExtension = theFileName.substring(p + 1);
