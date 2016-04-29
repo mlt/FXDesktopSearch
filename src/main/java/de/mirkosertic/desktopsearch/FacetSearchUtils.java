@@ -13,8 +13,16 @@
 package de.mirkosertic.desktopsearch;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.lucene.facet.range.LongRange;
+import org.apache.lucene.search.DocValuesRangeFilter;
 
 final class FacetSearchUtils {
+
+    private final static Pattern rangePattern =
+            Pattern.compile("(?:(?<left>-?\\d+)(?<lefti><=?))?(?<dim>[^<=]+)(?:(?<righti><=?)(?<right>\\d+))?");
 
     private FacetSearchUtils() {
     }
@@ -23,8 +31,39 @@ final class FacetSearchUtils {
         return aDimension+"="+aValue;
     }
 
-    public static void addToMap(String aDimensionCriteria, Map<String, String> aDrilldownDimensions) {
+    public static String encode(String aDimension, LongRange aValue) {
+        String out = "";
+        if (aValue.min != Long.MIN_VALUE)
+            out = aValue.min + (aValue.minInclusive ? "<=" : "<");
+        out += aDimension;
+        if (aValue.max != Long.MAX_VALUE)
+            out += (aValue.maxInclusive ? "<=" : "<") + aValue.max;
+        return out;
+    }
+
+    public static void addToMap(String aDimensionCriteria, Map<String, Object> aDrilldownDimensions) {
+        Matcher matcher = rangePattern.matcher(aDimensionCriteria);
+        if (matcher.matches()) {
+            String dim = matcher.group("dim");
+            String leftString = matcher.group("left");
+            String rightString = matcher.group("right");
+            Long left = null;
+            Long right = null;
+            boolean lefti = matcher.group("lefti").equals("<=");
+            boolean righti = matcher.group("righti").equals("<=");
+            if (null != leftString)
+                left = Long.valueOf(leftString);
+            if (null != rightString)
+                right = Long.valueOf(rightString);
+            DocValuesRangeFilter<Long> f = DocValuesRangeFilter.newLongRange(dim, left, right, lefti, righti);
+            aDrilldownDimensions.put(dim, f);
+            return;
+        }
+
         int p = aDimensionCriteria.indexOf("=");
-        aDrilldownDimensions.put(aDimensionCriteria.substring(0, p), aDimensionCriteria.substring(p + 1));
+        if (-1 != p) {
+            aDrilldownDimensions.put(aDimensionCriteria.substring(0, p), aDimensionCriteria.substring(p + 1));
+            return;
+        }
     }
 }

@@ -85,9 +85,11 @@ public class Configuration {
         metaDataNameReplacement.put("creatortool", "application-name");
         metaDataNameReplacement.put("producer", "application-name");
         metaDataNameReplacement.put("software", "application-name");
+        metaDataNameReplacement.put("application", "application-name");
         metaDataNameReplacement.put("creator", "author");
         metaDataNameReplacement.put("by-line", "author");
         metaDataNameReplacement.put("last-author", "author");
+        metaDataNameReplacement.put("windows-xp-author", "author");
         metaDataNameReplacement.put("contentstatus", "content-status");
         metaDataNameReplacement.put("presentationformat", "presentation-format");
         metaDataNameReplacement.put("print-date", "last-printed");
@@ -95,9 +97,16 @@ public class Configuration {
         metaDataNameReplacement.put("windows xp keywords", "keywords");
         metaDataNameReplacement.put("revision", "revision-number");
         metaDataNameReplacement.put("appversion", "application-version");
+        metaDataNameReplacement.put("application record version", "application-version");
         metaDataNameReplacement.put("character count", "character-count");
         metaDataNameReplacement.put("npages", "page-count");
         metaDataNameReplacement.put("slide-count", "page-count");
+        metaDataNameReplacement.put("focallength", "focal-length");
+//        metaDataNameReplacement.put("exif image height", "image-height");
+//        metaDataNameReplacement.put("exif image width", "image-width");
+     // however this causes havoc java.lang.IllegalArgumentException: DocValuesField "image-height" appears more than once in this document (only one value is allowed per field)
+//        metaDataNameReplacement.put("imageheight", "image-height"); // tiff
+//        metaDataNameReplacement.put("imagewidth", "image-width");
     }
 
     private Configuration(Configuration aConfiguration) {

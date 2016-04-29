@@ -58,7 +58,7 @@ class ContentExtractor {
             return theReplacement;
         }
 
-        return aName;
+        return aName.replace(" ", "-");
     }
 
     private ZonedDateTime parseDate(String aString) {
@@ -106,16 +106,19 @@ class ContentExtractor {
 
                 String theMetaDataValue = theMetaData.get(theName);
 
-                if (theName.equals("Focal Length 35")) {
-                    Long len = NumberFormat.getIntegerInstance().parse(theMetaDataValue).longValue();
-                    theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), len);
-                    continue;
-                }
-
                 // Try to detect if this is a date
                 ZonedDateTime date = parseDate(theMetaDataValue);
                 if (null != date) {
                     theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), date);
+                    continue;
+                }
+
+                if (theName.equals("Windows XP Keywords")) {
+                    // we have to do it here and not in LuceneIndexHandler
+                    // as other "keywords" may but should not contain "legit" ";"
+                    String[] theKeywords = theMetaDataValue.split(";|,");
+                    for (String aKeyword: theKeywords)
+                        theContent.addMetaData(harmonizeMetaDataName(theName.toLowerCase()), aKeyword);
                     continue;
                 }
 

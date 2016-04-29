@@ -20,6 +20,8 @@ import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.facet.*;
+import org.apache.lucene.facet.range.LongRange;
+import org.apache.lucene.facet.range.LongRangeFacetCounts;
 import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
@@ -36,6 +38,7 @@ import org.apache.lucene.store.NRTCachingDirectory;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -136,15 +139,21 @@ class LuceneIndexHandler {
                     facetsConfig.setMultiValued(theEntry.key, true);
                     String theStringValue = (String) theValue;
                     theContentAsString.append(" ").append(theStringValue);
-                    if (!StringUtils.isEmpty(theStringValue)) {
-                        theDocument.add(new SortedSetDocValuesFacetField(theEntry.key, theStringValue));
+                    // we want to process special cases here and not in ContentExtractor to preserve possible units
+                    switch (theEntry.key) {
+                    case "focal-length-35":
+                    case "image-height":
+                        try {
+                            Long len = NumberFormat.getIntegerInstance().parse(theStringValue).longValue();
+                            theDocument.add(new NumericDocValuesField(theEntry.key, len));
+                        } catch (java.text.ParseException e) {
+                        }
+                        break;
+                    default:
+                        if (!StringUtils.isEmpty(theStringValue)) {
+                            theDocument.add(new SortedSetDocValuesFacetField(theEntry.key, theStringValue));
+                        }
                     }
-                }
-                if (theValue instanceof Long) {
-                    facetsConfig.setMultiValued(theEntry.key, false);
-                    long theLongValue = (long) theValue;
-                    theContentAsString.append(" ").append(theLongValue).append("mm");
-                    theDocument.add(new NumericDocValuesField(theEntry.key, theLongValue));
                 }
                 if (theValue instanceof ZonedDateTime) {
                     facetsConfig.setHierarchical(theEntry.key, true);
@@ -284,7 +293,7 @@ class LuceneIndexHandler {
         return theBooleanQuery;
     }
 
-    public QueryResult performQuery(String aQueryString, String aBacklink, String aBasePath, Configuration aConfiguration, Map<String, String> aDrilldownFields) throws IOException {
+    public QueryResult performQuery(String aQueryString, String aBacklink, String aBasePath, Configuration aConfiguration, Map<String, Object> aDrilldownFields) throws IOException {
 
         searcherManager.maybeRefreshBlocking();
         IndexSearcher theSearcher = searcherManager.acquire();
@@ -318,8 +327,14 @@ class LuceneIndexHandler {
 
                 DrillDownQuery theDrilldownQuery = new DrillDownQuery(facetsConfig, theQuery);
                 aDrilldownFields.entrySet().stream().forEach(aEntry -> {
-                    LOGGER.info(" with Drilldown "+aEntry.getKey()+" for "+aEntry.getValue());
-                    theDrilldownQuery.add(aEntry.getKey(), aEntry.getValue());
+                    Object v = aEntry.getValue();
+                    LOGGER.info(" with Drilldown "+aEntry.getKey()+" for "+v);
+                    if (v instanceof String)
+                        theDrilldownQuery.add(aEntry.getKey(), (String) v);
+                    else if (v instanceof Filter)
+                        theDrilldownQuery.add(aEntry.getKey(), (Filter) v);
+                    else
+                        throw new RuntimeException("Not implemented for " + v.getClass().getSimpleName());
                 });
 
                 FacetsCollector theFacetCollector = new FacetsCollector();
@@ -459,6 +474,25 @@ class LuceneIndexHandler {
                     LOGGER.info(" "+theDimension);
                 }
 
+                // TODO this belongs to configuration
+                LongRange[] ranges = new LongRange[5];
+                ranges[0] = new LongRange("Ultra wide (<24mm)", Long.MIN_VALUE, false, 24, false);
+                ranges[1] = new LongRange("Wide (24-35)", 24, true, 35, false);
+                ranges[2] = new LongRange("Normal (35-70)", 35, true, 70, false);
+                ranges[3] = new LongRange("Medium tele (70-135)", 70, true, 135, false);
+                ranges[4] = new LongRange("Telephoto (>=135)", 135, true, Long.MAX_VALUE, false);
+
+                LongRangeFacetCounts facets = new LongRangeFacetCounts("focal-length-35", theFacetCollector, ranges);
+                FacetResult result = facets.getTopChildren(0, "focal-length-35");
+                List<Facet> theFocalFacet = new ArrayList<>();
+                for (int i = 0; i < result.childCount; i++) {
+                   LabelAndValue theLabelAndValue = result.labelValues[i];
+                   if (!theLabelAndValue.value.equals(0))
+                       theFocalFacet.add(new Facet(ranges[i].label, theLabelAndValue.value.intValue(),
+                               aBasePath + "/" + encode(
+                                       FacetSearchUtils.encode("focal-length-35", ranges[i]))));
+                }
+
                 if (!theAuthorFacets.isEmpty()) {
                     theDimensions.add(new FacetDimension("Author", theAuthorFacets));
                 }
@@ -470,6 +504,9 @@ class LuceneIndexHandler {
                 }
                 if (!theFileTypesFacets.isEmpty()) {
                     theDimensions.add(new FacetDimension("File types", theFileTypesFacets));
+                }
+                if (!theFocalFacet.isEmpty()) {
+                    theDimensions.add(new FacetDimension("Focal length", theFocalFacet));
                 }
 
                 // Wait for all Tasks to complete for the search result highlighter

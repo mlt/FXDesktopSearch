@@ -166,7 +166,7 @@ class Backend implements ConfigurationChangeListener {
         luceneIndexHandler.shutdown();
     }
 
-    public QueryResult performQuery(String aQueryString, String aBacklink, String aBasePath, Map<String, String> aDrilldownDimensions) throws IOException {
+    public QueryResult performQuery(String aQueryString, String aBacklink, String aBasePath, Map<String, Object> aDrilldownDimensions) throws IOException {
         return luceneIndexHandler.performQuery(aQueryString, aBacklink, aBasePath, configuration, aDrilldownDimensions);
     }
 

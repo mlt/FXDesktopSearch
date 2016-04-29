@@ -67,7 +67,7 @@ public class SearchServlet extends HttpServlet {
                 LOGGER.error("Error encoding query string " + theQueryString, e);
             }
         }
-        Map<String, String> theDrilldownDimensions = new HashMap<>();
+        Map<String, Object> theDrilldownDimensions = new HashMap<>();
 
         String thePathInfo = aRequest.getPathInfo();
         if (null == thePathInfo && StringUtils.isBlank(theQueryString)) {
