@@ -25,6 +25,8 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -34,12 +36,8 @@ class ContentExtractor {
     private static final Logger LOGGER = Logger.getLogger(ContentExtractor.class);
 
     private final Tika tika;
-    private final DateTimeFormatter[] formats = {
-            DateTimeFormatter.ISO_LOCAL_DATE_TIME,
-            DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss zzz yyyy"),
-            DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss") // Date/Time in jpegs
-            // DateTimeFormatter.ofPattern("yyyy-MM-ddTHH:mm:ss") // date in jpegs, same as ISO_LOCAL_DATE_TIME ?
-            };
+    private final DateTimeFormatter format1 = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss zzz yyyy");
+    private final DateTimeFormatter format2 = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss"); // Date/Time in jpegs
     private final Configuration configuration;
 
     public ContentExtractor(Configuration aConfiguration) {
@@ -62,13 +60,22 @@ class ContentExtractor {
     }
 
     private ZonedDateTime parseDate(String aString) {
-        for (DateTimeFormatter f : formats) {
-            try {
-                ZonedDateTime date = ZonedDateTime.parse(aString, f);
-                // System.out.printf("%s parsed\n", aString);
-                return date;
-            } catch (DateTimeParseException exc) {
-            }
+        try {
+            ZonedDateTime date = ZonedDateTime.parse(aString, format1);
+            return date;
+        } catch (DateTimeParseException exc) {
+        }
+        try {
+            LocalDateTime local = LocalDateTime.parse(aString);
+            ZonedDateTime date = ZonedDateTime.of(local, ZoneId.systemDefault());
+            return date;
+        } catch (DateTimeParseException exc) {
+        }
+        try {
+            LocalDateTime local = LocalDateTime.parse(aString, format2);
+            ZonedDateTime date = ZonedDateTime.of(local, ZoneId.systemDefault());
+            return date;
+        } catch (DateTimeParseException exc) {
         }
         return null;
     }
