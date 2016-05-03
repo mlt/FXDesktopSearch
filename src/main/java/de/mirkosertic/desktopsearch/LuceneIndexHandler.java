@@ -128,7 +128,6 @@ class LuceneIndexHandler {
         theDocument.add(new StringField(IndexFields.FILENAME, aContent.getFileName(), Field.Store.YES));
         theDocument.add(new SortedSetDocValuesFacetField(IndexFields.LANGUAGEFACET, theLanguage.name()));
         theDocument.add(new TextField(IndexFields.LANGUAGESTORED, theLanguage.name(), Field.Store.YES));
-        theDocument.add(new TextField(IndexFields.CONTENTMD5, DigestUtils.md5Hex(aContent.getFileContent()), Field.Store.YES));
 
         StringBuilder theContentAsString = new StringBuilder(aContent.getFileContent());
 
@@ -199,19 +198,20 @@ class LuceneIndexHandler {
                 }
             }
         });
+        String content = theContentAsString.toString();
 
         if (analyzerCache.supportsLanguage(theLanguage)) {
             LOGGER.info("Language and analyzer " + theLanguage+" detected for " + aContent.getFileName()+", using the corresponding language index field");
             String theFieldName = analyzerCache.getFieldNameFor(theLanguage);
-            theDocument.add(new Field(theFieldName, theContentAsString.toString(), contentFieldType));
+            theDocument.add(new Field(theFieldName, content, contentFieldType));
         } else {
             LOGGER.info("No matching language and analyzer detected for " + theLanguage+" and " + aContent.getFileName()+", using the default index field and analyzer");
-            theDocument.add(new Field(IndexFields.CONTENT, theContentAsString.toString(), contentFieldType));
+            theDocument.add(new Field(IndexFields.CONTENT, content, contentFieldType));
         }
 
-        theDocument.add(new Field(IndexFields.CONTENT_NOT_STEMMED, theContentAsString.toString(), contentFieldType));
+        theDocument.add(new Field(IndexFields.CONTENT_NOT_STEMMED, content, contentFieldType));
 
-        theDocument.add(new TextField(IndexFields.CONTENTMD5, DigestUtils.md5Hex(aContent.getFileContent()), Field.Store.YES));
+        theDocument.add(new TextField(IndexFields.CONTENTMD5, DigestUtils.md5Hex(content), Field.Store.YES));
         theDocument.add(new StringField(IndexFields.LOCATIONID, aLocationId, Field.Store.YES));
         theDocument.add(new LongField(IndexFields.FILESIZE, aContent.getFileSize(), Field.Store.YES));
         theDocument.add(new LongField(IndexFields.LASTMODIFIED, aContent.getLastModified(), Field.Store.YES));
@@ -402,8 +402,9 @@ class LuceneIndexHandler {
                             theExistingDocument = new QueryResultDocument(theDocumentID, theFoundFileName, theHighligherResult,
                                     Long.parseLong(theDocument.getField(IndexFields.LASTMODIFIED).stringValue()),
                                     theNormalizedScore, theUniqueID, thePreviewAvailable);
-                            if (0 != theHash.compareTo("d41d8cd98f00b204e9800998ecf8427e")) // don't lump empty content like images
-                                theDocumentsByHash.put(theHash, theExistingDocument);
+                            // content should not be empty as we have at least some metadata
+                            LOGGER.assertLog(0 != theHash.compareTo("d41d8cd98f00b204e9800998ecf8427e"), "Empty content according to CONTENTMD5 field");
+                            theDocumentsByHash.put(theHash, theExistingDocument);
                             theResultDocuments.add(theExistingDocument);
                         }
                     }
