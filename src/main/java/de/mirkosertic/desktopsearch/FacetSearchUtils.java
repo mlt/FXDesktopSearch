@@ -49,8 +49,10 @@ final class FacetSearchUtils {
             String rightString = matcher.group("right");
             Long left = null;
             Long right = null;
-            boolean lefti = matcher.group("lefti").equals("<=");
-            boolean righti = matcher.group("righti").equals("<=");
+            String leftiString = matcher.group("lefti");
+            boolean lefti = null != leftiString && leftiString.equals("<=");
+            String rightiString = matcher.group("righti");
+            boolean righti = null != rightiString && rightiString.equals("<=");
             if (null != leftString)
                 left = Long.valueOf(leftString);
             if (null != rightString)
